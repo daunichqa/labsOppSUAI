@@ -18,69 +18,115 @@ public:
 
 class Line : public TOCHKA {   //класс линия наследует класс точка
 public:
-	sf::ConvexShape semic;    //создается своя фигура
+	int amountOfPoints=0;
+	sf::Vector2f m_start;
+	sf::Vector2f m_finish;
+	sf::Vector2f* m_Points= nullptr;
+	sf::ConvexShape semic;//создается своя фигура
+	sf::Vertex* m_Line=new sf::Vertex[2];
 	Line() :TOCHKA(0, 0) {}
-};
-
-class Figure : public Line {
-public:
-	float b, a;
-	Figure(float A, float X, float Y, float B) : Line() {
-		x = X;
-		y = Y;
-		a = A;
-		b = B;
-		semic.setPointCount(181);
-		for (int i = 0; i < 181; i++)
+	Line(sf::Vector2f Start, sf::Vector2f Finish, int Quality = 100) : TOCHKA(0, 0), amountOfPoints(Quality),m_start(Start),m_finish(Finish)
+	{
+		delete m_Points;
+		m_Points = new sf::Vector2f[amountOfPoints];
+		sf::Vector2f Length = Finish - Start;
+		std::cout << sqrt(Length.x * Length.x + Length.y * Length.y) << std::endl;
+		sf::Vector2f step =sf::Vector2f (Length.x/ amountOfPoints, Length.y / amountOfPoints);
+		for (int i = 0; i < amountOfPoints; i++)
 		{
-			semic.setPoint(i, sf::Vector2f(a*cos(M_PI / 180.0*i), -a*sin(M_PI / 180.0*i))); //формула полукруга
-		}
-		semic.setFillColor(sf::Color::Red);
-		semic.setOrigin(a / 2, b / 2);
-		semic.setPosition(x, y);
-	}
-	void update() {
-		    //ВЫЛЕТАЕТ
-		
-		x += 1;
-		y -= 2;
-		semic.setPosition(x, y);
+			m_Points[i] = Start + sf::Vector2f(step.x*i, step.y * i);
 
+		}
+		m_Line[0] = sf::Vertex(m_Points[0]);
+		m_Line[1] = sf::Vertex(m_Points[amountOfPoints]);
+
+	
+	}
+};
+
+class Figure : public TOCHKA {
+public:
+	float m_width, m_height;
+	sf::ConvexShape m_shape;
+	sf::Vector2f* m_points = nullptr;
+	int m_amountOfPoints = 0;
+
+	Figure(float n_Width, float n_Height) : TOCHKA(0,0),m_width(n_Width),m_height(n_Height)
+	{
+		
+	}
+	
+
+};
+class Triangle :public Figure
+{
+
+public:
+	sf::ConvexShape m_shape;
+	Triangle(Line* Lines):Figure(0,0)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			int PreviousSize = m_amountOfPoints;
+			m_amountOfPoints += Lines[i].amountOfPoints;
+			sf::Vector2f* TempVal = new sf::Vector2f[PreviousSize];
+			memcpy(TempVal, m_points, sizeof(sf::Vector2f) * PreviousSize);
+			m_points = new sf::Vector2f[m_amountOfPoints];
+			for (int j = 0; j < PreviousSize; j++)
+			{
+				m_points[j] = TempVal[j];
+			}
+			for (int j = PreviousSize; j < Lines[i].amountOfPoints; j++)
+			{
+				m_points[j] = Lines[i].m_Points[j];
+			}
+		}
+		m_shape.setPointCount(m_amountOfPoints);
+		for (int i = 0; i < m_amountOfPoints; i++)
+			m_shape.setPoint(i, m_points[i]);
+		
 	}
 
 };
 
-class Point : public Line {
-public:
-	float a, b, dx, dy;
-
-	Point(float X, float Y, float A, float B) : Line() {
-		x = X;
-		y = Y;
+class SemiCircle: public Figure
+{
+	public:
+	float b, a;
+	SemiCircle(float A, float X, float Y, float B) : Figure(0,0) {
 		a = A;
 		b = B;
-		semic.setOrigin(a, b);
-		semic.setPosition(x, y);
+		m_amountOfPoints = 181;
+		m_shape.setPointCount(m_amountOfPoints);
+		for (int i = 0; i < m_amountOfPoints; i++)
+		{
+			m_shape.setPoint(i, sf::Vector2f(a * cos(M_PI / 180.0 * i), -a * sin(M_PI / 180.0 * i))); //формула полукруга
+		}
+		m_shape.setFillColor(sf::Color::Red);
+		m_shape.setOrigin(-a/2,-a/2);
+
+	}
+	void move(sf::Vector2f newpos)
+	{
+		m_shape.setPosition(newpos);
 	}
 };
 
 int main()
 {
-	float x1, y1;
-	sf::RenderWindow window(sf::VideoMode(1000, 600), "Semic and triangle");
-	Figure MySemic(100, 300, 500, 25);
-	x1 = MySemic.x; y1 = MySemic.y;
-	Point **p = new Point*[10000];
-	for (int i = 0; i < 10000; ++i)
-	{
-			    // ДА ТВОЮ МАТЬ
-		
-		x1 += 1;
-		y1 -= 2;
-		p[i] = new Point(x1, y1, 2, 2);
-
-	}
+	sf::RenderWindow window(sf::VideoMode(1000, 800), "Semic and triangle");
 	window.setFramerateLimit(60);
+	
+	
+	SemiCircle MySemic(100, 300, 500, 25);
+	MySemic.m_shape.setPosition(0,0);
+
+	Line* TriangleLines = new Line[3];
+	TriangleLines[0] = Line(sf::Vector2f(100, 200), sf::Vector2f(100, 300));
+	TriangleLines[1] = Line(sf::Vector2f(100, 300), sf::Vector2f(500, 200));
+	TriangleLines[2] = Line(sf::Vector2f(500, 200), sf::Vector2f(100, 200));
+	Triangle MyTriangle(TriangleLines);
+	int count = 0;
 	while (window.isOpen())
 	{
 		sf::Event event;
@@ -89,13 +135,22 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
-		MySemic.update();
+		//update
+		//MySemic.move(MyTriangle.m_points[count]);
+		//if (count == MyTriangle.m_amountOfPoints)		count = 0;
+		//else											count++;
+
+
+		//clear
 		window.clear();
-		for (int i = 0; i < 10000; ++i)
-		{
-			window.draw(p[i]->semic);
-		}
-		window.draw(MySemic.semic);
+		
+		
+		//draw
+		
+		for (int i = 0; i < 3; i++)
+			window.draw(TriangleLines[i].m_Line, 2, sf::Lines);
+		//window.draw(MyTriangle.m_shape, sf::RenderStates::Default);
+		//window.draw(MySemic.m_shape,sf::RenderStates::Default);
 		window.display();
 
 	}
