@@ -30,15 +30,15 @@ public:
 		delete m_Points;
 		m_Points = new sf::Vector2f[amountOfPoints];
 		sf::Vector2f Length = Finish - Start;
-		std::cout << sqrt(Length.x * Length.x + Length.y * Length.y) << std::endl;
 		sf::Vector2f step =sf::Vector2f (Length.x/ amountOfPoints, Length.y / amountOfPoints);
-		for (int i = 0; i < amountOfPoints; i++)
+		m_Points[0] = Start;
+		for (int i = 1; i < amountOfPoints; i++)
 		{
-			m_Points[i] = Start + sf::Vector2f(step.x*i, step.y * i);
-
+			m_Points[i]  =m_Points[i-1]+step;
 		}
+
 		m_Line[0] = sf::Vertex(m_Points[0]);
-		m_Line[1] = sf::Vertex(m_Points[amountOfPoints]);
+		m_Line[1] = sf::Vertex(m_Points[amountOfPoints-1]);
 
 	
 	}
@@ -65,21 +65,13 @@ public:
 	sf::ConvexShape m_shape;
 	Triangle(Line* Lines):Figure(0,0)
 	{
+		m_amountOfPoints = Lines->amountOfPoints * 3;
+		delete[] m_points;
+		m_points = new sf::Vector2f[m_amountOfPoints];
 		for (int i = 0; i < 3; i++)
 		{
-			int PreviousSize = m_amountOfPoints;
-			m_amountOfPoints += Lines[i].amountOfPoints;
-			sf::Vector2f* TempVal = new sf::Vector2f[PreviousSize];
-			memcpy(TempVal, m_points, sizeof(sf::Vector2f) * PreviousSize);
-			m_points = new sf::Vector2f[m_amountOfPoints];
-			for (int j = 0; j < PreviousSize; j++)
-			{
-				m_points[j] = TempVal[j];
-			}
-			for (int j = PreviousSize; j < Lines[i].amountOfPoints; j++)
-			{
-				m_points[j] = Lines[i].m_Points[j];
-			}
+			for (int j = 0; j < 100; j++)
+				m_points[i * 100 + j] = Lines[i].m_Points[j];
 		}
 		m_shape.setPointCount(m_amountOfPoints);
 		for (int i = 0; i < m_amountOfPoints; i++)
@@ -136,9 +128,9 @@ int main()
 				window.close();
 		}
 		//update
-		//MySemic.move(MyTriangle.m_points[count]);
-		//if (count == MyTriangle.m_amountOfPoints)		count = 0;
-		//else											count++;
+		MySemic.move(MyTriangle.m_points[count]);
+		if (count == MyTriangle.m_amountOfPoints)		count = 0;
+		else											count++;
 
 
 		//clear
@@ -147,10 +139,10 @@ int main()
 		
 		//draw
 		
-		for (int i = 0; i < 3; i++)
-			window.draw(TriangleLines[i].m_Line, 2, sf::Lines);
+		//for (int i = 0; i < 3; i++)
+			//window.draw(TriangleLines[i].m_Line, 2, sf::Lines);
 		//window.draw(MyTriangle.m_shape, sf::RenderStates::Default);
-		//window.draw(MySemic.m_shape,sf::RenderStates::Default);
+		window.draw(MySemic.m_shape,sf::RenderStates::Default);
 		window.display();
 
 	}
